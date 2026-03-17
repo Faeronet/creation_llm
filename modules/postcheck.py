@@ -63,12 +63,20 @@ def answer_supported_by_context(
         return False
     # Basic normalized tokens (без стемминга) для проверки чисел/дат.
     norm_ans_tokens = _normalize(answer).split()
-    norm_ctx_tokens = _normalize(context_text).split()
+    norm_ctx = _normalize(context_text)
 
-    # Если в ответе есть числовые/датные токены, которых нет в контексте,
-    # считаем ответ неподдержанным (защита от галлюцинаций по числам/датам).
+    # Числовые/датные токены: если токена нет в контексте, требуем чтобы хотя бы
+    # одна числовая подстрока из токена встречалась в контексте (иначе — галлюцинация).
+    # Так "14.06" допустим, если в контексте есть "14" или "06".
     for t in norm_ans_tokens:
-        if any(ch.isdigit() for ch in t) and t not in norm_ctx_tokens:
+        if not any(ch.isdigit() for ch in t):
+            continue
+        if t in norm_ctx.split():
+            continue
+        digit_parts = re.findall(r"\d+", t)
+        if not digit_parts:
+            continue
+        if not any(part in norm_ctx for part in digit_parts):
             return False
 
     ans_tokens = _token_set(answer)
@@ -87,6 +95,14 @@ def answer_supported_by_context(
     # consider it supported even при низком токенном оверлэпе (морфология, пунктуация).
     for _, text, _ in context_chunks:
         if answer.lower() in text.lower():
+            return True
+
+    # Fallback: нормализовать (убрать пунктуацию, пробелы) и проверить вхождение.
+    def _norm_sub(s: str) -> str:
+        return re.sub(r"[^\w\s]", "", _normalize(s)).replace(" ", "")
+    ans_norm = _norm_sub(answer)
+    for _, text, _ in context_chunks:
+        if len(ans_norm) >= 3 and ans_norm in _norm_sub(text):
             return True
 
     logger.debug(
