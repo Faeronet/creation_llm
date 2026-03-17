@@ -1,0 +1,7 @@
+# Tokenizer training config
+vocab_size: 3072
+model_type: unigram
+model_prefix: sp_model
+character_coverage: 0.9995
+# Optional: max_sentences for debugging (null = use full corpus)
+max_sentences: null

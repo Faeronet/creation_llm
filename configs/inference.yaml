@@ -1,0 +1,7 @@
+# Inference pipeline config
+top_k: 5
+max_new_tokens: 256
+temperature: 0.8
+use_fp16: true
+answerability_threshold: 0.5
+max_context_chars: 4000

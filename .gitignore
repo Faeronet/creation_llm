@@ -1,0 +1,55 @@
+# Checkpoints and large artifacts
+checkpoints/
+model/*.pt
+model/*.pkl
+model/tokenizer/*.model
+model/tokenizer/*.vocab
+model/retrieval/*.pkl
+model/retrieval/*.json
+
+# Keep directory structure
+!model/.gitkeep
+!checkpoints/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual envs
+.venv/
+venv/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs and cache
+*.log
+.cache/
+
+# Data (optional: uncomment if data should not be committed)
+# data/*.txt
+# data/*.jsonl
+# data/*.json
+# data/*.yaml

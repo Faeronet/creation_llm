@@ -1,0 +1,12 @@
+{
+  "num_angels": 72,
+  "num_chunks": 691,
+  "num_sft_train": 2890,
+  "num_sft_val": 1099,
+  "num_answerability_train": 2890,
+  "num_answerability_val": 1099,
+  "train_answerable": 2384,
+  "train_not_answerable": 506,
+  "val_answerable": 955,
+  "val_not_answerable": 144
+}

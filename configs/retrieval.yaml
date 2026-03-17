@@ -1,0 +1,3 @@
+# Retrieval (BM25) config
+chunks_file: "04_retrieval_chunks.jsonl"
+top_k: 5

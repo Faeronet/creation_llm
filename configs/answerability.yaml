@@ -1,0 +1,6 @@
+# Answerability classifier training
+batch_size: 16
+epochs: 3
+learning_rate: 2.0e-5
+max_length: 256
+freeze_lm: true

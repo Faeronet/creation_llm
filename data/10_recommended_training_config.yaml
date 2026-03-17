@@ -1,0 +1,53 @@
+project_name: angel-book-scratch-llm
+tokenizer:
+  type: sentencepiece_unigram
+  vocab_size: 3072
+  character_coverage: 1.0
+  input_corpus:
+    - 01_book_clean.txt
+    - 02_tokenizer_corpus.txt
+model:
+  architecture: decoder_only_transformer
+  vocab_size: 3072
+  hidden_size: 768
+  intermediate_size: 2048
+  num_hidden_layers: 12
+  num_attention_heads: 12
+  max_position_embeddings: 768
+  rms_norm: false
+  tie_word_embeddings: true
+training:
+  objective: supervised_causal_lm
+  train_file: 05_sft_chat_train.jsonl
+  val_file: 06_sft_chat_val.jsonl
+  answerability_train_file: 07_answerability_train.jsonl
+  answerability_val_file: 08_answerability_val.jsonl
+  precision: fp32
+  optimizer: adamw
+  learning_rate: 2.0e-4
+  weight_decay: 0.1
+  warmup_ratio: 0.03
+  lr_scheduler: cosine
+  max_grad_norm: 1.0
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 16
+  num_train_epochs: 8
+  context_length: 768
+  gradient_checkpointing: true
+  ddp: true
+  num_gpus: 2
+  seed: 42
+inference:
+  default_dtype: fp16
+  optional_quantization: int8
+  max_new_tokens: 96
+  do_sample: false
+  repetition_penalty: 1.08
+  no_repeat_ngram_size: 3
+retrieval:
+  chunk_file: 04_retrieval_chunks.jsonl
+  method: bm25
+  top_k: 5
+policies:
+  system_prompt_file: 09_system_prompt.txt
+  refusal_string: "В книге нет данных для ответа на этот вопрос."
