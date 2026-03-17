@@ -12,9 +12,22 @@ def _normalize(s: str) -> str:
     return re.sub(r"\s+", " ", s.strip().lower())
 
 
+def _stem_token(token: str, min_len: int = 5, stem_len: int = 5) -> str:
+    """
+    Very simple \"stemming\": for longer tokens keep only first stem_len chars.
+    This helps сгладить падежи/окончания для русских слов без внешних зависимостей.
+    """
+    if len(token) >= min_len:
+        return token[:stem_len]
+    return token
+
+
 def _token_set(s: str) -> set:
-    """Set of words (for overlap)."""
-    return set(_normalize(s).split())
+    """
+    Set of (lightly) stemmed words for overlap comparison.
+    """
+    tokens = _normalize(s).split()
+    return { _stem_token(t) for t in tokens if t }
 
 
 def answer_supported_by_context(
@@ -44,6 +57,16 @@ def answer_supported_by_context(
     context_text = " ".join(text for _, text, _ in context_chunks)
     if not context_text.strip():
         return False
+    # Basic normalized tokens (без стемминга) для проверки чисел/дат.
+    norm_ans_tokens = _normalize(answer).split()
+    norm_ctx_tokens = _normalize(context_text).split()
+
+    # Если в ответе есть числовые/датные токены, которых нет в контексте,
+    # считаем ответ неподдержанным (защита от галлюцинаций по числам/датам).
+    for t in norm_ans_tokens:
+        if any(ch.isdigit() for ch in t) and t not in norm_ctx_tokens:
+            return False
+
     ans_tokens = _token_set(answer)
     ctx_tokens = _token_set(context_text)
     # Remove very short tokens

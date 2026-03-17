@@ -7,5 +7,13 @@ answerability_threshold: 0.5
 max_context_chars: 4000
 
 # Post-check (context support) heuristics
-postcheck_min_overlap_ratio: 0.2
-postcheck_min_word_overlap: 1
+# strict режим (по умолчанию, при средней уверенности answerability)
+postcheck_min_overlap_ratio_strict: 0.3
+postcheck_min_word_overlap_strict: 2
+
+# relaxed режим (для high-confidence ответов)
+postcheck_min_overlap_ratio_relaxed: 0.15
+postcheck_min_word_overlap_relaxed: 1
+
+# answerability prob, выше которой включаем relaxed-пороги
+answerability_high_confidence_threshold: 0.8

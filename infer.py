@@ -41,8 +41,11 @@ def main() -> int:
             temperature=cfg.get("temperature", 0.8),
             use_fp16=cfg.get("use_fp16", True),
             answerability_threshold=cfg.get("answerability_threshold", 0.5),
-            postcheck_min_overlap_ratio=cfg.get("postcheck_min_overlap_ratio", 0.2),
-            postcheck_min_word_overlap=cfg.get("postcheck_min_word_overlap", 1),
+            postcheck_min_overlap_ratio_strict=cfg.get("postcheck_min_overlap_ratio_strict", 0.3),
+            postcheck_min_word_overlap_strict=cfg.get("postcheck_min_word_overlap_strict", 2),
+            postcheck_min_overlap_ratio_relaxed=cfg.get("postcheck_min_overlap_ratio_relaxed", 0.15),
+            postcheck_min_word_overlap_relaxed=cfg.get("postcheck_min_word_overlap_relaxed", 1),
+            answerability_high_confidence_threshold=cfg.get("answerability_high_confidence_threshold", 0.8),
         )
     except Exception as e:
         logger.exception("Failed to load pipeline: %s", e)

@@ -38,8 +38,11 @@ class InferencePipeline:
         temperature: float = 0.8,
         use_fp16: bool = True,
         answerability_threshold: float = 0.5,
-        postcheck_min_overlap_ratio: float = 0.3,
-        postcheck_min_word_overlap: int = 2,
+        postcheck_min_overlap_ratio_strict: float = 0.3,
+        postcheck_min_word_overlap_strict: int = 2,
+        postcheck_min_overlap_ratio_relaxed: float = 0.15,
+        postcheck_min_word_overlap_relaxed: int = 1,
+        answerability_high_confidence_threshold: float = 0.8,
     ):
         from modules.paths import MODEL_ANSWERABILITY, MODEL_LM, MODEL_RETRIEVAL, MODEL_TOKENIZER
 
@@ -55,8 +58,11 @@ class InferencePipeline:
         self.temperature = temperature
         self.use_fp16 = use_fp16
         self.answerability_threshold = answerability_threshold
-        self.postcheck_min_overlap_ratio = postcheck_min_overlap_ratio
-        self.postcheck_min_word_overlap = postcheck_min_word_overlap
+        self.postcheck_min_overlap_ratio_strict = postcheck_min_overlap_ratio_strict
+        self.postcheck_min_word_overlap_strict = postcheck_min_word_overlap_strict
+        self.postcheck_min_overlap_ratio_relaxed = postcheck_min_overlap_ratio_relaxed
+        self.postcheck_min_word_overlap_relaxed = postcheck_min_word_overlap_relaxed
+        self.answerability_high_confidence_threshold = answerability_high_confidence_threshold
 
         config_path = lm_dir / "config.json"
         if config_path.exists():
@@ -82,7 +88,7 @@ class InferencePipeline:
         self.lm = self.lm.to(self._device)
         self.answerability_model = self.answerability_model.to(self._device)
 
-    def _is_answerable(self, question: str, context_text: str) -> bool:
+    def _is_answerable(self, question: str, context_text: str) -> float:
         """
         Run answerability classifier.
 
@@ -91,7 +97,7 @@ class InferencePipeline:
         """
         text = question.strip()
         if not text:
-            return False
+            return 0.0
         ids = self.sp.encode(text, add_bos=True, add_eos=True, out_type=int)[:512]
         input_ids = torch.tensor([ids], dtype=torch.long, device=self._device)
         with torch.no_grad():
@@ -99,7 +105,7 @@ class InferencePipeline:
         probs = torch.softmax(logits, dim=-1)
         p_answerable = probs[0, 1].item()
         logger.info("answerability prob=%.3f threshold=%.3f", p_answerable, self.answerability_threshold)
-        return p_answerable >= self.answerability_threshold
+        return p_answerable
 
     def run(self, question: str) -> Tuple[str, bool]:
         """
@@ -119,7 +125,8 @@ class InferencePipeline:
             return DEFAULT_REFUSAL_MESSAGE, True
         context_text = "\n\n".join(text for _, text, _ in chunks)
 
-        if not self._is_answerable(question, context_text):
+        p_answerable = self._is_answerable(question, context_text)
+        if p_answerable < self.answerability_threshold:
             logger.info("Refusal: answerability classifier returned not_answerable")
             return DEFAULT_REFUSAL_MESSAGE, True
 
@@ -144,12 +151,27 @@ class InferencePipeline:
         if not answer:
             logger.info("Refusal: empty generated answer")
             return DEFAULT_REFUSAL_MESSAGE, True
+
+        # Выбор режима post-check в зависимости от уверенности answerability
+        if p_answerable >= self.answerability_high_confidence_threshold:
+            min_ratio = self.postcheck_min_overlap_ratio_relaxed
+            min_words = self.postcheck_min_word_overlap_relaxed
+        else:
+            min_ratio = self.postcheck_min_overlap_ratio_strict
+            min_words = self.postcheck_min_word_overlap_strict
+
         if not answer_supported_by_context(
             answer,
             chunks,
-            min_overlap_ratio=self.postcheck_min_overlap_ratio,
-            min_word_overlap=self.postcheck_min_word_overlap,
+            min_overlap_ratio=min_ratio,
+            min_word_overlap=min_words,
         ):
-            logger.info("Refusal: post-check marked answer as unsupported by context")
+            logger.info(
+                "Refusal: post-check marked answer as unsupported by context "
+                "(prob=%.3f, min_ratio=%.2f, min_words=%d)",
+                p_answerable,
+                min_ratio,
+                min_words,
+            )
             return DEFAULT_REFUSAL_MESSAGE, True
         return answer, False
