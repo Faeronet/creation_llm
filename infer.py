@@ -45,7 +45,7 @@ def main() -> int:
             postcheck_min_word_overlap_strict=cfg.get("postcheck_min_word_overlap_strict", 2),
             postcheck_min_overlap_ratio_relaxed=cfg.get("postcheck_min_overlap_ratio_relaxed", 0.15),
             postcheck_min_word_overlap_relaxed=cfg.get("postcheck_min_word_overlap_relaxed", 1),
-            answerability_high_confidence_threshold=cfg.get("answerability_high_confidence_threshold", 0.8),
+            answerability_high_confidence_threshold=cfg.get("answerability_high_confidence_threshold", 0.75),
         )
     except Exception as e:
         logger.exception("Failed to load pipeline: %s", e)

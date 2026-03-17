@@ -42,7 +42,7 @@ class InferencePipeline:
         postcheck_min_word_overlap_strict: int = 2,
         postcheck_min_overlap_ratio_relaxed: float = 0.15,
         postcheck_min_word_overlap_relaxed: int = 1,
-        answerability_high_confidence_threshold: float = 0.8,
+        answerability_high_confidence_threshold: float = 0.75,
     ):
         from modules.paths import MODEL_ANSWERABILITY, MODEL_LM, MODEL_RETRIEVAL, MODEL_TOKENIZER
 

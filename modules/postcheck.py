@@ -6,6 +6,10 @@ Simple heuristic: key phrases from the answer should appear in context (or high 
 import re
 from typing import List, Tuple
 
+from modules.logger import get_logger
+
+logger = get_logger(__name__)
+
 
 def _normalize(s: str) -> str:
     """Lowercase and collapse whitespace for comparison."""
@@ -75,7 +79,8 @@ def answer_supported_by_context(
         return True
     # Basic token overlap check
     overlap = len(ans_tokens & ctx_tokens)
-    if overlap >= min_word_overlap and overlap / len(ans_tokens) >= min_overlap_ratio:
+    ratio = overlap / len(ans_tokens) if ans_tokens else 0.0
+    if overlap >= min_word_overlap and ratio >= min_overlap_ratio:
         return True
 
     # Fallback: if the full answer text appears as a substring of any context chunk,
@@ -84,4 +89,12 @@ def answer_supported_by_context(
         if answer.lower() in text.lower():
             return True
 
+    logger.debug(
+        "postcheck fail: overlap=%d len_ans_tokens=%d ratio=%.2f required ratio=%.2f min_words=%d",
+        overlap,
+        len(ans_tokens),
+        ratio,
+        min_overlap_ratio,
+        min_word_overlap,
+    )
     return False

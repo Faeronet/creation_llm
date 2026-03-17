@@ -12,8 +12,8 @@ postcheck_min_overlap_ratio_strict: 0.3
 postcheck_min_word_overlap_strict: 2
 
 # relaxed режим (для high-confidence ответов)
-postcheck_min_overlap_ratio_relaxed: 0.15
+postcheck_min_overlap_ratio_relaxed: 0.1
 postcheck_min_word_overlap_relaxed: 1
 
-# answerability prob, выше которой включаем relaxed-пороги
-answerability_high_confidence_threshold: 0.8
+# answerability prob, выше которой включаем relaxed-пороги (0.75 => prob 0.78+ уже relaxed)
+answerability_high_confidence_threshold: 0.75
