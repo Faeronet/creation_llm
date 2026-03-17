@@ -14,7 +14,7 @@ model:
 
 # Training
 batch_size: 4
-epochs: 3
+epochs: 20
 learning_rate: 1.0e-4
 max_length: 512
 checkpoint_every_steps: 500
