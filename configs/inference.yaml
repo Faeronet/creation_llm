@@ -5,3 +5,7 @@ temperature: 0.8
 use_fp16: true
 answerability_threshold: 0.5
 max_context_chars: 4000
+
+# Post-check (context support) heuristics
+postcheck_min_overlap_ratio: 0.2
+postcheck_min_word_overlap: 1

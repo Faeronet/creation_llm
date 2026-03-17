@@ -38,6 +38,8 @@ class InferencePipeline:
         temperature: float = 0.8,
         use_fp16: bool = True,
         answerability_threshold: float = 0.5,
+        postcheck_min_overlap_ratio: float = 0.3,
+        postcheck_min_word_overlap: int = 2,
     ):
         from modules.paths import MODEL_ANSWERABILITY, MODEL_LM, MODEL_RETRIEVAL, MODEL_TOKENIZER
 
@@ -53,6 +55,8 @@ class InferencePipeline:
         self.temperature = temperature
         self.use_fp16 = use_fp16
         self.answerability_threshold = answerability_threshold
+        self.postcheck_min_overlap_ratio = postcheck_min_overlap_ratio
+        self.postcheck_min_word_overlap = postcheck_min_word_overlap
 
         config_path = lm_dir / "config.json"
         if config_path.exists():
@@ -79,14 +83,23 @@ class InferencePipeline:
         self.answerability_model = self.answerability_model.to(self._device)
 
     def _is_answerable(self, question: str, context_text: str) -> bool:
-        """Run answerability classifier on question + context."""
-        text = (context_text + " " + question).strip()
+        """
+        Run answerability classifier.
+
+        Важно: подаём в классификатор в первую очередь сам вопрос, чтобы
+        формат входа был ближе к тренировочному (где использовались вопросы).
+        """
+        text = question.strip()
+        if not text:
+            return False
         ids = self.sp.encode(text, add_bos=True, add_eos=True, out_type=int)[:512]
         input_ids = torch.tensor([ids], dtype=torch.long, device=self._device)
         with torch.no_grad():
             logits, _ = self.answerability_model(input_ids)
         probs = torch.softmax(logits, dim=-1)
-        return probs[0, 1].item() >= self.answerability_threshold
+        p_answerable = probs[0, 1].item()
+        logger.info("answerability prob=%.3f threshold=%.3f", p_answerable, self.answerability_threshold)
+        return p_answerable >= self.answerability_threshold
 
     def run(self, question: str) -> Tuple[str, bool]:
         """
@@ -97,13 +110,17 @@ class InferencePipeline:
         """
         question = question.strip()
         if not question:
+            logger.info("Refusal: empty question")
             return DEFAULT_REFUSAL_MESSAGE, True
 
         chunks = self.retriever.retrieve(question, top_k=self.top_k)
         if not chunks:
+            logger.info("Refusal: no retrieval chunks")
             return DEFAULT_REFUSAL_MESSAGE, True
         context_text = "\n\n".join(text for _, text, _ in chunks)
+
         if not self._is_answerable(question, context_text):
+            logger.info("Refusal: answerability classifier returned not_answerable")
             return DEFAULT_REFUSAL_MESSAGE, True
 
         prompt_str = build_prompt(question, chunks)
@@ -125,7 +142,14 @@ class InferencePipeline:
         new_tokens = generated[len(input_ids):]
         answer = decode(self.sp, new_tokens, skip_special_tokens=True).strip()
         if not answer:
+            logger.info("Refusal: empty generated answer")
             return DEFAULT_REFUSAL_MESSAGE, True
-        if not answer_supported_by_context(answer, chunks):
+        if not answer_supported_by_context(
+            answer,
+            chunks,
+            min_overlap_ratio=self.postcheck_min_overlap_ratio,
+            min_word_overlap=self.postcheck_min_word_overlap,
+        ):
+            logger.info("Refusal: post-check marked answer as unsupported by context")
             return DEFAULT_REFUSAL_MESSAGE, True
         return answer, False

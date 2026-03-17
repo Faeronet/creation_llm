@@ -50,9 +50,15 @@ def answer_supported_by_context(
     ans_tokens = {t for t in ans_tokens if len(t) > 1}
     if not ans_tokens:
         return True
+    # Basic token overlap check
     overlap = len(ans_tokens & ctx_tokens)
-    if overlap < min_word_overlap:
-        return False
-    if overlap / len(ans_tokens) < min_overlap_ratio:
-        return False
-    return True
+    if overlap >= min_word_overlap and overlap / len(ans_tokens) >= min_overlap_ratio:
+        return True
+
+    # Fallback: if the full answer text appears as a substring of any context chunk,
+    # consider it supported even при низком токенном оверлэпе (морфология, пунктуация).
+    for _, text, _ in context_chunks:
+        if answer.lower() in text.lower():
+            return True
+
+    return False
